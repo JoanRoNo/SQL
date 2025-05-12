@@ -46,7 +46,15 @@ WHERE id IN (
         FROM transaction
     )
 );
-   
+
+# Eliminaran del sistema les empreses que no tenen transaccions registrades, entrega el llistat d'aquestes empreses.
+SELECT company_name
+FROM company
+WHERE id NOT IN (
+	SELECT company_id
+    FROM transaction
+    WHERE company_id IS NOT NULL);
+    
     
     
     
