@@ -29,7 +29,7 @@ limit 1;
 # Mostra totes les transaccions realitzades per empreses d'Alemanya.
 SELECT * 
 FROM transaction
-WHERE 
+WHERE declined = 0 and
     company_id IN (
 	SELECT id
 	FROM company
@@ -66,12 +66,12 @@ ORDER BY ingresos desc
 LIMIT 5;
 
 # Quina és la mitjana de vendes per país? Presenta els resultats ordenats de major a menor mitjà.
-select company.country, avg(amount) as ventas
-from transaction
-join company on transaction.company_id = company.id
-where declined = 0
-group by company.country
-order by ventas desc;
+SELECT company.country, avg(amount) as ventas
+FROM transaction
+JOIN company on transaction.company_id = company.id
+WHERE declined = 0
+GROUP BY company.country
+ORDER BY ventas desc;
 
 
 # En la teva empresa, es planteja un nou projecte per a llançar algunes campanyes publicitàries per a fer competència a la companyia "Non Institute". Per a això, et demanen la llista de totes les transaccions realitzades per empreses que estan situades en el mateix país que aquesta companyia.
@@ -106,27 +106,36 @@ FROM company c
 JOIN transaction t on c.id=t.company_id
 WHERE amount between 100 and 200
 and declined = 0
-HAVING fecha = "2021-04-29"
-or fecha = "2021-07-20"
-or fecha = "2022-03-13"
+and date(t.timestamp) in ("2021-04-29", "2021-07-20", "2022-03-13")
 ORDER BY amount desc;
 
+# una altra manera de fer-ho
+SELECT c.company_name, c.phone, c.country, date(t.timestamp) as fecha, t.amount
+FROM company c
+JOIN transaction t on c.id=t.company_id
+WHERE amount between 100 and 200
+and declined = 0
+HAVING fecha in ( "2021-04-29", "2021-07-20", "2022-03-13")
+ORDER BY t.amount desc;
+
+
 # Necessitem optimitzar l'assignació dels recursos i dependrà de la capacitat operativa que es requereixi, per la qual cosa et demanen la informació sobre la quantitat de transaccions que realitzen les empreses, però el departament de recursos humans és exigent i vol un llistat de les empreses on especifiquis si tenen més de 4 transaccions o menys.
+ SELECT company_id, count(*) as num_transacciones,
+CASE
+	WHEN count(*) >= 4 THEN "mayor/igual a 4"
+    ELSE "menor a 4"
+    END AS especificación_empresas
+FROM transaction
+WHERE declined = 0
+GROUP BY company_id
+ORDER BY num_transacciones desc;
+
+# Solucionado con IF
 SELECT company_id, count(*) as num_transacciones, IF (count(*) >= 4, "mayor/igual a 4", "menor a 4") as transacciones
 FROM transaction
 WHERE declined = 0
 GROUP BY company_id
-ORDER BY num_transacciones desc; 
-
-
-
-
-
-# CASE WHEN?
-
-select *
-from transaction;
-
+ORDER BY num_transacciones desc;
 
 
 
