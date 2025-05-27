@@ -139,32 +139,27 @@ WHERE t.user_id IN (
     GROUP BY user_id
     HAVING COUNT(*) > 30);
     
-# Exercici 2
-# Mostra la mitjana d'amount per IBAN de les targetes de crèdit a la companyia Donec Ltd, utilitza almenys 2 taules.
-SELECT avg(t.amount) as mitjana_quantitat, cc.iban
-FROM transactions t
-JOIN credit_cards cc ON t.card_id = cc.id
-JOIN companies cp ON t.business_id = cp.company_id
-WHERE company_name = "Donec Ltd"
-GROUP BY cc.iban;
-
-# Nivell 2
-# Creamos la tabla
-CREATE TABLE IF NOT EXISTS credit_cards_status (
-credit_id VARCHAR (20));
-INSERT INTO credit_cards_status (credit_id)
-	SELECT declined
+CREATE TABLE estado_tarjetas AS 
+SELECT 
+    card_id,
+    CASE
+        WHEN SUM(CASE WHEN declined = 1 THEN 1 ELSE 0 END) = 3 THEN 0
+        ELSE 1
+    END AS tarjeta_activa
+FROM 
+    (SELECT card_id, declined,
+        ROW_NUMBER() OVER (PARTITION BY card_id ORDER BY timestamp DESC) AS orden
     FROM transactions
-    WHERE credit_id 
-		CASE
-			WHEN declined = 0 THEN "aceptada"
-            ELSE "declinada"
-		END AS status
-ORDER BY 
+    WHERE card_id IS NOT NULL
+) AS ultimas_transacciones
+WHERE orden <= 3
+GROUP BY card_id; 
 
-INSERT INTO tbl_temp2 (fld_id)
-  SELECT tbl_temp1.fld_order_id
-  FROM tbl_temp1 WHERE tbl_temp1.fld_order_id > 100;
+)
+# Quantes targetes estan actives?
+SELECT COUNT(*) AS tarjetas_activas
+FROM estado_tarjetas
+WHERE tarjeta_activa = 1;
 
     
 
