@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS transactions (
 LOAD DATA infile "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/transactions.csv" 
 INTO TABLE transactions
 FIELDS TERMINATED BY ';'
-ENCLOSED BY '"'
 LINES TERMINATED BY '\n'
 IGNORE 1 ROWS;
 
@@ -32,7 +31,6 @@ CREATE TABLE IF NOT EXISTS products (
 LOAD DATA INFILE "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/products.csv"
 INTO TABLE products
 FIELDS TERMINATED BY ","
-ENCLOSED BY '"'
 LINES TERMINATED BY "\n"
 IGNORE 1 ROWS;
 
@@ -52,7 +50,6 @@ CREATE TABLE IF NOT EXISTS credit_cards (
 LOAD DATA INFILE "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/credit_cards.csv"
 INTO TABLE credit_cards
 FIELDS TERMINATED BY ","
-ENCLOSED BY '"'
 LINES TERMINATED BY "\n"
 IGNORE 1 ROWS;
 
@@ -67,7 +64,6 @@ CREATE TABLE IF NOT EXISTS companies (
 LOAD DATA INFILE "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/companies.csv"
 INTO TABLE companies
 FIELDS TERMINATED BY ","
-ENCLOSED BY '"'
 LINES TERMINATED BY "\n"
 IGNORE 1 ROWS;
 
