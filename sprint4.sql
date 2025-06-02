@@ -1,11 +1,11 @@
 # Creamos la tabla transactions
 CREATE TABLE IF NOT EXISTS transactions (
     id VARCHAR(255) PRIMARY KEY,
-    card_id VARCHAR(50),
-    business_id VARCHAR(50),
+    card_id VARCHAR(20),
+    business_id VARCHAR(10),
     timestamp DATETIME,
     amount DECIMAL(10,2),
-    declined BOOLEAN,
+    declined TINYINT,
     product_ids VARCHAR(255),
     user_id INT,
     lat FLOAT,
@@ -37,19 +37,18 @@ LINES TERMINATED BY "\n"
 IGNORE 1 ROWS;
 
 # Creamos la tabla credit_cards
-
 CREATE TABLE IF NOT EXISTS credit_cards (
 	id VARCHAR (20) PRIMARY KEY,
     user_id INT,
     iban VARCHAR (50),
     pan VARCHAR (30),
-    pin INT,
-    cvv INT,
+    pin VARCHAR(4),
+    cvv VARCHAR(4),
     track1 TEXT,
     track2 TEXT, 
     expiring_date VARCHAR (10)
     );
-# pin mejor no en int pq hay algunos que empiezan x 0
+    
 LOAD DATA INFILE "C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/credit_cards.csv"
 INTO TABLE credit_cards
 FIELDS TERMINATED BY ","
@@ -105,9 +104,7 @@ ENCLOSED BY '"'
 LINES TERMINATED BY "\r\n"
 IGNORE 1 ROWS;
 
-select *
-from t;
-
+# Añadimos las foreign keys a la tabla transactions para crear nuestro esquema
 ALTER TABLE transactions
 ADD CONSTRAINT fk_transactions_companies
 FOREIGN KEY (business_id)
@@ -118,7 +115,6 @@ ADD CONSTRAINT fk_transactions_credit_cards
 FOREIGN KEY (card_id)
 REFERENCES credit_cards(id);
 
-
 ALTER TABLE transactions
 ADD CONSTRAINT fk_transactions_users
 FOREIGN KEY (user_id)
@@ -128,48 +124,80 @@ ALTER TABLE transactions
 ADD CONSTRAINT fk_transactions_products
 FOREIGN KEY (product_ids)
 REFERENCES products(id);
+# no podemos establecer esta relación de momento (los campos no coinciden)
 
 # Exercici 1
-SELECT DISTINCT ua.name, ua.surname
+SELECT DISTINCT ua.id, ua.name, ua.surname
 FROM users_all ua
 JOIN transactions t ON ua.id = t.user_id
 WHERE t.user_id IN (
     SELECT user_id
     FROM transactions
-    GROUP BY user_id
+    GROUP BY user_id	
     HAVING COUNT(*) > 30);
     
-CREATE TABLE estado_tarjetas AS 
+# Exercici 2
+# Mostra la mitjana d'amount per IBAN de les targetes de crèdit a la companyia Donec Ltd, utilitza almenys 2 taules.
+SELECT round(avg(t.amount),2) as mitjana_quantitat, cc.iban
+FROM transactions t
+JOIN credit_cards cc ON t.card_id = cc.id
+JOIN companies cp ON t.business_id = cp.company_id
+WHERE company_name = "Donec Ltd"
+GROUP BY cc.iban;
+	
+# Nivell 2
+# Creamos la tabla
+CREATE TABLE estado_tarjetas AS
 SELECT 
-    card_id,
+	card_id,
     CASE
-        WHEN SUM(CASE WHEN declined = 1 THEN 1 ELSE 0 END) = 3 THEN 0
+		WHEN SUM(CASE WHEN declined = 1 THEN 1 ELSE 0 END) = 3 THEN 0
         ELSE 1
-    END AS tarjeta_activa
-FROM 
-    (SELECT card_id, declined,
-        ROW_NUMBER() OVER (PARTITION BY card_id ORDER BY timestamp DESC) AS orden
-    FROM transactions
-    WHERE card_id IS NOT NULL
-) AS ultimas_transacciones
+	END AS tarjeta_activa
+FROM (
+	SELECT card_id, declined,
+		ROW_NUMBER() OVER (PARTITION BY card_id ORDER BY timestamp DESC) AS orden
+	FROM transactions) AS ultimas_transacciones
 WHERE orden <= 3
-GROUP BY card_id; 
+GROUP BY card_id;
 
-)
-# Quantes targetes estan actives?
-SELECT COUNT(*) AS tarjetas_activas
+# Exercici 1
+SELECT COUNT(*) as tarjetas_activas
 FROM estado_tarjetas
 WHERE tarjeta_activa = 1;
 
-    
+# Nivel 3
+# Creamos la tabla
+CREATE TABLE transaction_product (
+    transaction_id VARCHAR(255),
+    product_id INT,
+    PRIMARY KEY (transaction_id, product_id),
+    FOREIGN KEY (transaction_id) REFERENCES transactions(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
 
+# Insertamos datos a la tabla des de una CTE
+INSERT INTO transaction_product (transaction_id, product_id)
+SELECT transaction_id, CAST(product_id AS UNSIGNED)
+FROM (
+    WITH RECURSIVE numbers AS (
+      SELECT 0 AS n
+      UNION ALL
+      SELECT n + 1 FROM numbers WHERE n < 20
+    ),
+    cortar AS (
+      SELECT
+        t.id AS transaction_id,
+        TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(t.product_ids, ',', n + 1), ',', -1)) AS product_id
+      FROM transactions t
+      JOIN numbers 
+        ON n <= CHAR_LENGTH(t.product_ids) - CHAR_LENGTH(REPLACE(t.product_ids, ',', ''))
+    )
+    SELECT * FROM cortar
+) AS resultado;
 
-	
+SELECT product_id, COUNT(*) as veces_vendido
+FROM transaction_product
+GROUP BY 1
+ORDER BY veces_vendido desc;
 
- 
-
-
-    
-    
-    
-    
